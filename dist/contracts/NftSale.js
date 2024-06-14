@@ -70,6 +70,37 @@ class NftSale {
             return seqno;
         });
     }
+    buy(wallet) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const stateInit = (0, ton_core_1.beginCell)()
+                .store((0, ton_core_1.storeStateInit)(this.stateInit))
+                .endCell();
+            const payload = (0, ton_core_1.beginCell)();
+            payload.storeUint(2, 32);
+            payload.storeRef(stateInit);
+            payload.storeUint(Math.random() * 100, 64);
+            payload.storeRef(new ton_core_1.Cell());
+            const seqno = yield wallet.contract.getSeqno();
+            yield wallet.contract.sendTransfer({
+                seqno,
+                secretKey: wallet.keyPair.secretKey,
+                messages: [
+                    (0, ton_core_1.internal)({
+                        value: "1.3",
+                        to: this.data.nftAddress,
+                        body: payload.endCell(),
+                    }),
+                ],
+                sendMode: ton_core_1.SendMode.IGNORE_ERRORS + ton_core_1.SendMode.PAY_GAS_SEPARATELY,
+            });
+            return seqno;
+        });
+    }
 }
 exports.NftSale = NftSale;
+//   curl -X 'POST' 'https://toncenter.com/api/v2/runGetMethod' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{
+//   "address": "EQCkHLEJVpuAwZg0d9HzLgCp8QioXbEBGtv3EX88H-Bz9wzv",
+//   "method": "get_nft_data",
+//   "stack": []
+// }'
 //# sourceMappingURL=NftSale.js.map

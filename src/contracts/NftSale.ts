@@ -98,4 +98,40 @@ import {
         });
         return seqno;
     }
+
+
+
+    public async buy(wallet: OpenedWallet): Promise<number> {
+      const stateInit = beginCell()
+        .store(storeStateInit(this.stateInit))
+        .endCell();
+      
+      const payload = beginCell();
+      payload.storeUint(2, 32);
+      payload.storeRef(stateInit);
+      payload.storeUint(Math.random() * 100, 64);
+      payload.storeRef(new Cell());
+      const seqno = await wallet.contract.getSeqno();
+      await wallet.contract.sendTransfer({
+      seqno,
+      secretKey: wallet.keyPair.secretKey,
+      messages: [
+          internal({
+          value: "1.3",
+          to: this.data.nftAddress,
+          body: payload.endCell(),
+          }),
+      ],
+      sendMode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY,
+      });
+      return seqno;
   }
+  }
+
+
+
+//   curl -X 'POST' 'https://toncenter.com/api/v2/runGetMethod' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{
+//   "address": "EQCkHLEJVpuAwZg0d9HzLgCp8QioXbEBGtv3EX88H-Bz9wzv",
+//   "method": "get_nft_data",
+//   "stack": []
+// }'

@@ -33,7 +33,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv = __importStar(require("dotenv"));
-const metadata_1 = require("./metadata");
 const utils_1 = require("./utils");
 const delay_1 = require("./delay");
 const NftCollection_1 = require("./contracts/NftCollection");
@@ -48,14 +47,18 @@ function init() {
         const metadataFolderPath = "./data/metadata/";
         const imagesFolderPath = "./data/images/";
         const wallet = yield (0, utils_1.openWallet)(process.env.MNEMONIC.split(" "), true);
-        console.log("Started uploading images to IPFS...");
-        const imagesIpfsHash = yield (0, metadata_1.uploadFolderToIPFS)(imagesFolderPath);
-        console.log(`Successfully uploaded the images to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`);
-        console.log(`Successfully uploaded the pictures to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`);
-        console.log("Started uploading metadata files to IPFS...");
-        yield (0, metadata_1.updateMetadataFiles)(metadataFolderPath, imagesIpfsHash);
-        const metadataIpfsHash = yield (0, metadata_1.uploadFolderToIPFS)(metadataFolderPath);
-        console.log(`Successfully uploaded the metadata to ipfs: https://gateway.pinata.cloud/ipfs/${metadataIpfsHash}`);
+        // console.log("Started uploading images to IPFS...");
+        const imagesIpfsHash = "QmTPSH7bkExWcrdXXwQvhN72zDXK9pZzH3AGbCw13f6Lwx";
+        // console.log(
+        // `Successfully uploaded the pictures to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`
+        // );
+        // 
+        // console.log("Started uploading metadata files to IPFS...");
+        // await updateMetadataFiles(metadataFolderPath, imagesIpfsHash);
+        const metadataIpfsHash = "QmTTmDQWT2jXxCAnwgwYY3rki76hoAGD4H4Xf1KDEGfzsr";
+        // console.log(
+        // `Successfully uploaded the metadata to ipfs: https://gateway.pinata.cloud/ipfs/${metadataIpfsHash}`
+        // );
         console.log("Start deploy of nft collection...");
         const collectionData = {
             ownerAddress: wallet.contract.address,
@@ -66,38 +69,36 @@ function init() {
             commonContentUrl: `ipfs://${metadataIpfsHash}/`,
         };
         const collection = new NftCollection_1.NftCollection(collectionData);
-        let seqno = yield collection.deploy(wallet);
-        console.log(`Collection deployed: ${collection.address}`);
-        yield (0, delay_1.waitSeqno)(seqno, wallet);
+        let seqno = yield wallet.contract.getSeqno(); /* = await collection.deploy(wallet); */
+        // console.log(`Collection deployed: ${collection.address}`);
+        // await waitSeqno(seqno, wallet);
         const files = yield (0, promises_1.readdir)(metadataFolderPath);
         console.log(`Start deploy of ${files.length} NFTs`);
         console.log(files);
         let index = 0;
-        seqno = yield collection.topUpBalance(wallet, files.length);
-        yield (0, delay_1.waitSeqno)(seqno, wallet);
+        // seqno = await collection.topUpBalance(wallet, files.length);
+        // await waitSeqno(seqno, wallet);
         console.log(`Balance top-upped`);
         console.log(files.length);
-        for (const file of files) {
-            if (index > 0) {
-                console.log(`Start deploy of ${index + 1} NFT`);
-                const mintParams = {
-                    queryId: 0,
-                    itemOwnerAddress: wallet.contract.address,
-                    itemIndex: index,
-                    amount: (0, ton_core_1.toNano)("0.05"),
-                    commonContentUrl: file,
-                };
-                const nftItem = new NftItems_1.NftItem(collection);
-                seqno = yield nftItem.deploy(wallet, mintParams);
-                console.log(`Successfully deployed ${index + 1} NFT`);
-                yield (0, delay_1.waitSeqno)(seqno, wallet);
-            }
-            index++;
-        }
+        // for (const file of files) {
+        //     console.log(`Start deploy of ${index + 1} NFT`);
+        //     const mintParams = {
+        //       queryId: 0,
+        //       itemOwnerAddress: wallet.contract.address,
+        //       itemIndex: index,
+        //       amount: toNano("0.05"),
+        //       commonContentUrl: file,
+        //     };
+        //     const nftItem = new NftItem(collection);
+        //     seqno = await nftItem.deploy(wallet, mintParams);
+        //     console.log(`Successfully deployed ${index + 1} NFT`);
+        //     await waitSeqno(seqno, wallet);  
+        //     index++;
+        // }
         console.log("Start deploy of new marketplace  ");
         const marketplace = new NftMarketplace_1.NftMarketplace(wallet.contract.address);
-        seqno = yield marketplace.deploy(wallet);
-        yield (0, delay_1.waitSeqno)(seqno, wallet);
+        // seqno = await marketplace.deploy(wallet);
+        // await waitSeqno(seqno, wallet);
         console.log("Successfully deployed new marketplace");
         const nftToSaleAddress = yield NftItems_1.NftItem.getAddressByIndex(collection.address, 0);
         console.log(`NFT address: ${nftToSaleAddress}`);
@@ -114,10 +115,15 @@ function init() {
             royaltyAmount: (0, ton_core_1.toNano)("0.5"),
         };
         const nftSaleContract = new NftSale_1.NftSale(saleData);
-        seqno = yield nftSaleContract.deploy(wallet);
-        yield (0, delay_1.waitSeqno)(seqno, wallet);
+        try {
+            seqno = yield nftSaleContract.buy(wallet);
+            yield (0, delay_1.waitSeqno)(seqno, wallet);
+        }
+        catch (e) {
+            console.log(e);
+        }
         console.log("Successfully deployed new sale contract");
-        yield NftItems_1.NftItem.transfer(wallet, nftToSaleAddress, nftSaleContract.address);
+        // await NftItem.transfer(wallet, nftToSaleAddress, nftSaleContract.address);
         console.log("Done!");
     });
 }

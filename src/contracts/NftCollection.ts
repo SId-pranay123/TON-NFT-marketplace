@@ -18,6 +18,7 @@ export type collectionData = {
     commonContentUrl: string;
 }
 
+// for NFT items
 export type mintParams = {
     queryId: number | null,
     itemOwnerAddress: Address,

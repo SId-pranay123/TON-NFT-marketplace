@@ -18,19 +18,18 @@ async function init() {
 
   const wallet = await openWallet(process.env.MNEMONIC!.split(" "), true);
 
-  console.log("Started uploading images to IPFS...");
-  const imagesIpfsHash = await uploadFolderToIPFS(imagesFolderPath);
-  console.log(`Successfully uploaded the images to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`);
-  console.log(
-    `Successfully uploaded the pictures to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`
-  );
-
-  console.log("Started uploading metadata files to IPFS...");
-  await updateMetadataFiles(metadataFolderPath, imagesIpfsHash);
-  const metadataIpfsHash = await uploadFolderToIPFS(metadataFolderPath);
-  console.log(
-    `Successfully uploaded the metadata to ipfs: https://gateway.pinata.cloud/ipfs/${metadataIpfsHash}`
-  );
+  // console.log("Started uploading images to IPFS...");
+  const imagesIpfsHash = "QmTPSH7bkExWcrdXXwQvhN72zDXK9pZzH3AGbCw13f6Lwx"
+  // console.log(
+    // `Successfully uploaded the pictures to ipfs: https://gateway.pinata.cloud/ipfs/${imagesIpfsHash}`
+  // );
+// 
+  // console.log("Started uploading metadata files to IPFS...");
+  // await updateMetadataFiles(metadataFolderPath, imagesIpfsHash);
+  const metadataIpfsHash = "QmTTmDQWT2jXxCAnwgwYY3rki76hoAGD4H4Xf1KDEGfzsr"
+  // console.log(
+    // `Successfully uploaded the metadata to ipfs: https://gateway.pinata.cloud/ipfs/${metadataIpfsHash}`
+  // );
 
 
   console.log("Start deploy of nft collection...");
@@ -43,41 +42,41 @@ async function init() {
     commonContentUrl: `ipfs://${metadataIpfsHash}/`,
   };
   const collection = new NftCollection(collectionData);
-  let seqno = await collection.deploy(wallet);
-  console.log(`Collection deployed: ${collection.address}`);
-  await waitSeqno(seqno, wallet);
+  let seqno = await wallet.contract.getSeqno() /* = await collection.deploy(wallet); */
+  // console.log(`Collection deployed: ${collection.address}`);
+  // await waitSeqno(seqno, wallet);
 
   const files = await readdir(metadataFolderPath);
   console.log(`Start deploy of ${files.length} NFTs`);
   console.log(files)
   let index = 0;
-  seqno = await collection.topUpBalance(wallet, files.length);
-  await waitSeqno(seqno, wallet);
+  // seqno = await collection.topUpBalance(wallet, files.length);
+  // await waitSeqno(seqno, wallet);
   console.log(`Balance top-upped`);
   console.log(files.length);
-  for (const file of files) {
-      console.log(`Start deploy of ${index + 1} NFT`);
-      const mintParams = {
-        queryId: 0,
-        itemOwnerAddress: wallet.contract.address,
-        itemIndex: index,
-        amount: toNano("0.05"),
-        commonContentUrl: file,
-      };
+  // for (const file of files) {
+  //     console.log(`Start deploy of ${index + 1} NFT`);
+  //     const mintParams = {
+  //       queryId: 0,
+  //       itemOwnerAddress: wallet.contract.address,
+  //       itemIndex: index,
+  //       amount: toNano("0.05"),
+  //       commonContentUrl: file,
+  //     };
   
-      const nftItem = new NftItem(collection);
-      seqno = await nftItem.deploy(wallet, mintParams);
-      console.log(`Successfully deployed ${index + 1} NFT`);
-      await waitSeqno(seqno, wallet);  
-      index++;
-  }
+  //     const nftItem = new NftItem(collection);
+  //     seqno = await nftItem.deploy(wallet, mintParams);
+  //     console.log(`Successfully deployed ${index + 1} NFT`);
+  //     await waitSeqno(seqno, wallet);  
+  //     index++;
+  // }
 
 
 
   console.log("Start deploy of new marketplace  ");
   const marketplace = new NftMarketplace(wallet.contract.address);
-  seqno = await marketplace.deploy(wallet);
-  await waitSeqno(seqno, wallet);
+  // seqno = await marketplace.deploy(wallet);
+  // await waitSeqno(seqno, wallet);
   console.log("Successfully deployed new marketplace");
 
   const nftToSaleAddress = await NftItem.getAddressByIndex(collection.address, 0);
@@ -96,10 +95,16 @@ async function init() {
   };
 
   const nftSaleContract = new NftSale(saleData);
-  seqno = await nftSaleContract.deploy(wallet);
-  await waitSeqno(seqno, wallet);
+  try{
+    seqno = await nftSaleContract.buy(wallet);
+    await waitSeqno(seqno, wallet);
+  }catch (e) {
+    console.log(e)
+  }
+  
   console.log("Successfully deployed new sale contract");
-  await NftItem.transfer(wallet, nftToSaleAddress, nftSaleContract.address);
+  // await NftItem.transfer(wallet, nftToSaleAddress, nftSaleContract.address);
+
 
   console.log("Done!");
 }
